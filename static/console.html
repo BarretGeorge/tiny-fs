@@ -3,60 +3,127 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Tiny FS 控制台</title>
+  <title>Tiny FS | Distributed Object Storage</title>
   <link rel="stylesheet" href="/ui/styles.css">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='4' fill='%23d7512c'/%3E%3Cpath d='M8 12h16v2H8zM8 18h12v2H8z' fill='white'/%3E%3C/svg%3E">
 </head>
 <body>
   <div class="app-shell">
     <aside class="sidebar">
       <div class="brand-card">
-        <p class="eyebrow">对象控制台</p>
-        <h1>Tiny FS</h1>
-        <p class="brand-copy">一个单机对象存储控制台，交互方式参考 MinIO。</p>
+        <div class="brand-logo">
+          <svg viewBox="0 0 32 32" width="36" height="36">
+            <rect width="32" height="32" rx="6" fill="#d7512c"/>
+            <path d="M8 10h16M8 16h14M8 22h10" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div class="brand-text">
+          <h1>Tiny FS</h1>
+          <p class="brand-copy">Distributed Object Storage</p>
+        </div>
+      </div>
+
+      <div class="cluster-status-panel">
+        <div class="status-header">
+          <span class="status-icon" id="clusterStatusIcon">●</span>
+          <span id="clusterStatusText">Initializing...</span>
+        </div>
+        <div class="status-details" id="clusterDetails">
+          <div class="status-item">
+            <span class="status-label">Nodes</span>
+            <span class="status-value" id="nodeCount">-</span>
+          </div>
+          <div class="status-item">
+            <span class="status-label">Mode</span>
+            <span class="status-value" id="clusterMode">-</span>
+          </div>
+          <div class="status-item">
+            <span class="status-label">Quorum</span>
+            <span class="status-value" id="quorumInfo">-</span>
+          </div>
+        </div>
       </div>
 
       <form id="bucketForm" class="panel panel-tight">
         <div class="panel-heading">
           <div>
-            <p class="panel-kicker">存储桶</p>
-            <h2>创建存储桶</h2>
+            <p class="panel-kicker">Storage</p>
+            <h2>Create Bucket</h2>
           </div>
-          <button id="refreshBucketsButton" class="ghost-button" type="button">刷新</button>
+          <button id="refreshBucketsButton" class="icon-button" type="button" title="Refresh">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+            </svg>
+          </button>
         </div>
-        <label class="field">
-          <span>名称</span>
-          <input id="bucketNameInput" name="bucket" type="text" minlength="3" maxlength="63" placeholder="media-archive" autocomplete="off" required>
-        </label>
-        <button class="primary-button" type="submit">创建存储桶</button>
+        <div class="input-group">
+          <input id="bucketNameInput" name="bucket" type="text" minlength="3" maxlength="63" placeholder="bucket-name" autocomplete="off" required>
+          <button class="primary-button" type="submit">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5">
+              <path d="M12 5v14M5 12h14"/>
+            </svg>
+            Create
+          </button>
+        </div>
       </form>
 
       <section class="panel panel-fill">
         <div class="panel-heading">
           <div>
-            <p class="panel-kicker">概览</p>
-            <h2 id="bucketCount">0 个存储桶</h2>
+            <p class="panel-kicker">Buckets</p>
+            <h2 id="bucketCount">0 Buckets</h2>
           </div>
-          <span id="healthChip" class="status-chip">检查中...</span>
         </div>
         <div id="bucketList" class="bucket-list"></div>
       </section>
 
       <div class="sidebar-footer">
-        <span id="versionLabel">版本 -</span>
-        <span id="statusLine">控制台已就绪</span>
+        <div class="footer-info">
+          <span id="versionLabel">v0.1.0</span>
+          <span class="separator">•</span>
+          <span id="statusLine">Ready</span>
+        </div>
+        <button id="settingsButton" class="icon-button footer-button" title="Settings">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+          </svg>
+        </button>
       </div>
     </aside>
 
     <main class="workspace">
       <header class="hero panel">
-        <div>
-          <p class="panel-kicker">当前存储桶</p>
-          <h2 id="currentBucketTitle">尚未选择存储桶</h2>
-          <p id="currentPrefixLabel" class="hero-copy">请先创建或选择一个存储桶，再开始浏览对象。</p>
+        <div class="hero-content">
+          <div class="hero-bucket">
+            <span class="hero-icon">
+              <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+                <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+                <line x1="12" y1="22.08" x2="12" y2="12"/>
+              </svg>
+            </span>
+            <div>
+              <p class="panel-kicker">Current Bucket</p>
+              <h2 id="currentBucketTitle">No Bucket Selected</h2>
+            </div>
+          </div>
+          <p id="currentPrefixLabel" class="hero-copy">Create or select a bucket to start browsing objects.</p>
         </div>
         <div class="hero-actions">
-          <button id="upButton" class="ghost-button" type="button">返回上一级</button>
-          <button id="deleteBucketButton" class="danger-button" type="button">删除存储桶</button>
+          <button id="upButton" class="ghost-button" type="button" disabled>
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M5 12h14M12 5l7 7-7 7"/>
+            </svg>
+            Back
+          </button>
+          <button id="deleteBucketButton" class="danger-button" type="button" disabled>
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="3 6 5 6 21 6"/>
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+            </svg>
+            Delete
+          </button>
         </div>
       </header>
 
@@ -64,55 +131,73 @@
         <form id="uploadForm" class="panel upload-panel">
           <div class="panel-heading">
             <div>
-              <p class="panel-kicker">上传</p>
-              <h2>上传对象到当前存储桶</h2>
+              <p class="panel-kicker">Upload</p>
+              <h2>Upload Objects</h2>
             </div>
           </div>
 
           <div id="dropZone" class="drop-zone" tabindex="0">
-            <p class="drop-title">将文件拖到这里</p>
-            <p class="drop-copy">也可以手动选择文件，并上传到当前前缀目录。</p>
-            <label class="secondary-button file-button">
-              <input id="fileInput" type="file">
-              选择文件
+            <div class="drop-icon">
+              <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="17 8 12 3 7 8"/>
+                <line x1="12" y1="3" x2="12" y2="15"/>
+              </svg>
+            </div>
+            <p class="drop-title">Drop files here</p>
+            <p class="drop-copy">or click to select files</p>
+            <label class="file-button">
+              <input id="fileInput" type="file" multiple>
+              <span>Select Files</span>
             </label>
           </div>
 
-          <label class="field">
-            <span>对象键</span>
-            <input id="objectNameInput" type="text" placeholder="例如 docs/readme.txt，留空则使用文件名" autocomplete="off">
-          </label>
-
-          <div class="progress-row">
-            <div class="progress-track">
-              <div id="uploadProgressBar" class="progress-bar"></div>
+          <div class="upload-details">
+            <div class="field">
+              <label>Object Key</label>
+              <input id="objectNameInput" type="text" placeholder="folder/file.txt" autocomplete="off">
             </div>
-            <span id="uploadProgressLabel">空闲</span>
-          </div>
+            
+            <div class="progress-section">
+              <div class="progress-row">
+                <div class="progress-track">
+                  <div id="uploadProgressBar" class="progress-bar"></div>
+                </div>
+                <span id="uploadProgressLabel">Idle</span>
+              </div>
+            </div>
 
-          <button class="primary-button" type="submit">上传对象</button>
+            <button class="primary-button full-width" type="submit" id="uploadButton">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="17 8 12 3 7 8"/>
+                <line x1="12" y1="3" x2="12" y2="15"/>
+              </svg>
+              Upload Object
+            </button>
+          </div>
         </form>
 
         <section class="panel path-panel">
           <div class="panel-heading">
             <div>
-              <p class="panel-kicker">路径</p>
-              <h2>当前前缀</h2>
+              <p class="panel-kicker">Navigation</p>
+              <h2>Current Path</h2>
             </div>
           </div>
-          <nav id="breadcrumbBar" class="breadcrumb-bar" aria-label="对象路径"></nav>
+          <nav id="breadcrumbBar" class="breadcrumb-bar" aria-label="Object path"></nav>
           <dl class="summary-grid">
             <div class="summary-card">
-              <dt>文件夹</dt>
+              <dt>Prefixes</dt>
               <dd id="folderCount">0</dd>
             </div>
             <div class="summary-card">
-              <dt>对象</dt>
+              <dt>Objects</dt>
               <dd id="objectCount">0</dd>
             </div>
             <div class="summary-card">
-              <dt>层级</dt>
-              <dd id="prefixDepth">根目录</dd>
+              <dt>Total Size</dt>
+              <dd id="totalSize">0 B</dd>
             </div>
           </dl>
         </section>
@@ -121,28 +206,40 @@
       <section class="panel browser-panel">
         <div class="panel-heading">
           <div>
-            <p class="panel-kicker">浏览器</p>
-            <h2>对象列表</h2>
+            <p class="panel-kicker">Browser</p>
+            <h2>Objects</h2>
           </div>
-          <button id="refreshObjectsButton" class="ghost-button" type="button">刷新对象</button>
+          <div class="browser-actions">
+            <button id="refreshObjectsButton" class="ghost-button" type="button" disabled>
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+              </svg>
+              Refresh
+            </button>
+          </div>
         </div>
 
         <div class="browser-layout">
           <div class="browser-table-pane">
             <div id="emptyState" class="empty-state">
-              <p class="empty-title">当前没有可显示的内容</p>
-              <p class="empty-copy">请选择一个存储桶，然后上传对象或进入某个前缀目录。</p>
+              <div class="empty-icon">
+                <svg viewBox="0 0 24 24" width="64" height="64" fill="none" stroke="currentColor" stroke-width="1">
+                  <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+                </svg>
+              </div>
+              <p class="empty-title">No Objects Yet</p>
+              <p class="empty-copy">Upload objects to this bucket or navigate into a prefix folder.</p>
             </div>
 
             <div class="table-wrap">
               <table class="object-table">
                 <thead>
                   <tr>
-                    <th>名称</th>
-                    <th>类型</th>
-                    <th>大小</th>
-                    <th>更新时间</th>
-                    <th class="actions-column">操作</th>
+                    <th class="th-name">Name</th>
+                    <th>Type</th>
+                    <th>Size</th>
+                    <th>Last Modified</th>
+                    <th class="th-actions">Actions</th>
                   </tr>
                 </thead>
                 <tbody id="objectTableBody"></tbody>
@@ -152,8 +249,15 @@
 
           <aside id="previewPanel" class="preview-panel" aria-live="polite">
             <div class="preview-empty">
-              <p class="empty-title">预览面板</p>
-              <p class="empty-copy">选择一个对象后，这里会显示与 MinIO Web 接近的文件预览和元数据。</p>
+              <div class="preview-empty-icon">
+                <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1">
+                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                  <circle cx="8.5" cy="8.5" r="1.5"/>
+                  <polyline points="21 15 16 10 5 21"/>
+                </svg>
+              </div>
+              <p class="empty-title">Preview Panel</p>
+              <p class="empty-copy">Select an object to preview images, text, or view metadata.</p>
             </div>
           </aside>
         </div>
@@ -162,6 +266,50 @@
   </div>
 
   <div id="toastRack" class="toast-rack" aria-live="polite" aria-atomic="true"></div>
+  
+  <!-- Settings Modal -->
+  <div id="settingsModal" class="modal hidden">
+    <div class="modal-backdrop"></div>
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Settings</h2>
+        <button class="modal-close" type="button">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"/>
+            <line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="settings-section">
+          <h3>Cluster Information</h3>
+          <div id="clusterTopology" class="topology-list"></div>
+        </div>
+        <div class="settings-section">
+          <h3>Server Info</h3>
+          <div class="info-grid">
+            <div class="info-item">
+              <span class="info-label">Version</span>
+              <span class="info-value" id="serverVersion">-</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Data Directory</span>
+              <span class="info-value" id="serverDataDir">-</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Cluster Mode</span>
+              <span class="info-value" id="serverClusterMode">-</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Node ID</span>
+              <span class="info-value" id="serverNodeId">-</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script src="/ui/app.js" defer></script>
 </body>
 </html>

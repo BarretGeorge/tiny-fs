@@ -26,6 +26,11 @@ pub enum AppError {
     RangeNotSatisfiable(u64),
     InvalidRequest(String),
     StorageInconsistent(String),
+    InsufficientNodes { required: usize, available: usize },
+    NodeNotAvailable(String),
+    ReplicationFailed(String),
+    ErasureCodingFailed(String),
+    QuorumNotAchieved { required: usize, achieved: usize },
     Internal,
 }
 
@@ -51,6 +56,26 @@ impl std::fmt::Display for AppError {
             }
             Self::InvalidRequest(reason) => write!(f, "invalid request: {reason}"),
             Self::StorageInconsistent(reason) => write!(f, "storage inconsistent: {reason}"),
+            Self::InsufficientNodes {
+                required,
+                available,
+            } => {
+                write!(
+                    f,
+                    "insufficient nodes: required {}, available {}",
+                    required, available
+                )
+            }
+            Self::NodeNotAvailable(node_id) => write!(f, "node not available: {node_id}"),
+            Self::ReplicationFailed(reason) => write!(f, "replication failed: {reason}"),
+            Self::ErasureCodingFailed(reason) => write!(f, "erasure coding failed: {reason}"),
+            Self::QuorumNotAchieved { required, achieved } => {
+                write!(
+                    f,
+                    "quorum not achieved: required {}, achieved {}",
+                    required, achieved
+                )
+            }
             Self::Internal => write!(f, "internal server error"),
         }
     }
@@ -74,6 +99,11 @@ impl std::error::Error for AppError {
             | Self::RangeNotSatisfiable(_)
             | Self::InvalidRequest(_)
             | Self::StorageInconsistent(_)
+            | Self::InsufficientNodes { .. }
+            | Self::NodeNotAvailable(_)
+            | Self::ReplicationFailed(_)
+            | Self::ErasureCodingFailed(_)
+            | Self::QuorumNotAchieved { .. }
             | Self::Internal => None,
         }
     }
@@ -150,7 +180,12 @@ impl AppError {
             | Self::InvalidObjectKey(_)
             | Self::InvalidPartNumber(_)
             | Self::InvalidRange(_)
-            | Self::InvalidRequest(_) => StatusCode::BAD_REQUEST,
+            | Self::InvalidRequest(_)
+            | Self::InsufficientNodes { .. }
+            | Self::NodeNotAvailable(_)
+            | Self::ReplicationFailed(_)
+            | Self::ErasureCodingFailed(_)
+            | Self::QuorumNotAchieved { .. } => StatusCode::BAD_REQUEST,
             Self::RangeNotSatisfiable(_) => StatusCode::RANGE_NOT_SATISFIABLE,
             Self::Config(_)
             | Self::Io(_)
@@ -177,6 +212,11 @@ impl AppError {
             Self::RangeNotSatisfiable(_) => "range_not_satisfiable",
             Self::InvalidRequest(_) => "invalid_request",
             Self::StorageInconsistent(_) => "storage_inconsistent",
+            Self::InsufficientNodes { .. } => "insufficient_nodes",
+            Self::NodeNotAvailable(_) => "node_not_available",
+            Self::ReplicationFailed(_) => "replication_failed",
+            Self::ErasureCodingFailed(_) => "erasure_coding_failed",
+            Self::QuorumNotAchieved { .. } => "quorum_not_achieved",
             Self::Internal => "internal_error",
         }
     }

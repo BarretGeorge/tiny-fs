@@ -12,9 +12,9 @@ use serde::Deserialize;
 use serde_json::{json, Value};
 
 use crate::{
-    AppError, AppResult, AppState, Bucket, ByteRangeRequest, CompleteMultipartPart,
-    ListObjectsResult, MultipartPart, MultipartPartOutcome, MultipartUploadHandle,
-    MultipartUploadListing, ObjectMetadata, StoredObject,
+    AppError, AppResult, AppState, Bucket, ByteRangeRequest, ClusterTopology,
+    CompleteMultipartPart, ListObjectsResult, MultipartPart, MultipartPartOutcome,
+    MultipartUploadHandle, MultipartUploadListing, ObjectMetadata, StoredObject,
 };
 
 const CONSOLE_HTML: &str = include_str!("../../static/console.html");
@@ -27,6 +27,9 @@ pub fn router(state: AppState) -> Router {
         .route("/ui/styles.css", get(console_styles))
         .route("/ui/app.js", get(console_script))
         .route("/health", get(health))
+        .route("/cluster/topology", get(cluster_topology))
+        .route("/cluster/nodes", get(list_cluster_nodes))
+        .route("/cluster/health", get(cluster_health))
         .route("/buckets", get(list_buckets))
         .route("/buckets/:bucket", put(create_bucket).delete(delete_bucket))
         .route("/objects/:bucket", get(list_objects))
@@ -84,6 +87,99 @@ async fn health(State(state): State<AppState>) -> AppResult<Response> {
             "service": "tiny-fs",
             "version": env!("CARGO_PKG_VERSION"),
             "data_dir": state.storage.root.display().to_string(),
+            "cluster_mode": state.is_cluster_mode(),
+            "node_id": state.config.cluster.node_id,
+        }),
+    )
+}
+
+async fn cluster_topology(State(state): State<AppState>) -> AppResult<Response> {
+    if !state.is_cluster_mode() {
+        return json_response(
+            StatusCode::OK,
+            json!({
+                "error": "cluster mode not enabled",
+                "enabled": false,
+            }),
+        );
+    }
+
+    let topology = state.cluster_manager.as_ref()
+        .map(|cm| cm.get_topology())
+        .unwrap_or(ClusterTopology {
+            nodes: vec![],
+            total_capacity: 0,
+            replication_factor: 0,
+        });
+
+    json_response(
+        StatusCode::OK,
+        json!({
+            "enabled": true,
+            "node_id": state.config.cluster.node_id,
+            "replication_factor": topology.replication_factor,
+            "total_capacity": topology.total_capacity,
+            "nodes": topology.nodes,
+        }),
+    )
+}
+
+async fn list_cluster_nodes(State(state): State<AppState>) -> AppResult<Response> {
+    if !state.is_cluster_mode() {
+        return json_response(
+            StatusCode::OK,
+            json!({
+                "error": "cluster mode not enabled",
+                "enabled": false,
+                "nodes": [],
+            }),
+        );
+    }
+
+    let topology = state.cluster_manager.as_ref()
+        .map(|cm| cm.get_topology())
+        .unwrap_or(ClusterTopology {
+            nodes: vec![],
+            total_capacity: 0,
+            replication_factor: 0,
+        });
+
+    json_response(StatusCode::OK, json!({ "nodes": topology.nodes }))
+}
+
+async fn cluster_health(State(state): State<AppState>) -> AppResult<Response> {
+    if !state.is_cluster_mode() {
+        return json_response(
+            StatusCode::OK,
+            json!({
+                "enabled": false,
+                "healthy": true,
+                "message": "single node mode",
+            }),
+        );
+    }
+
+    let is_healthy = state.cluster_manager.as_ref()
+        .map(|cm| cm.is_healthy())
+        .unwrap_or(false);
+
+    let total_nodes = state.cluster_manager.as_ref()
+        .map(|cm| cm.registry().node_count())
+        .unwrap_or(0);
+
+    let healthy_nodes = state.cluster_manager.as_ref()
+        .map(|cm| cm.registry().healthy_node_count())
+        .unwrap_or(0);
+
+    json_response(
+        StatusCode::OK,
+        json!({
+            "enabled": true,
+            "healthy": is_healthy,
+            "total_nodes": total_nodes,
+            "healthy_nodes": healthy_nodes,
+            "write_quorum": state.cluster_manager.as_ref().map(|cm| cm.write_quorum()).unwrap_or(1),
+            "read_quorum": state.cluster_manager.as_ref().map(|cm| cm.read_quorum()).unwrap_or(1),
         }),
     )
 }
