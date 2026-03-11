@@ -4,9 +4,11 @@ use crate::{
     cluster::{ClusterManager, FailureDetector, NodeDiscovery, NodeRole},
     config::Config,
     meta::SqliteMetadataStore,
+    policy::{CorsManager, LifecycleManager, PolicyManager, QuotaManager},
     replication::ReplicationManager,
     service::{BucketService, ObjectService},
     sharding::ShardMapper,
+    versioning::VersionManager,
     AppResult, BlobStore, StorageLayout,
 };
 
@@ -20,6 +22,11 @@ pub struct AppState {
     pub shard_mapper: Option<Arc<ShardMapper>>,
     pub replication_manager: Option<Arc<ReplicationManager>>,
     pub node_discovery: Option<Arc<NodeDiscovery>>,
+    pub policy_manager: Arc<PolicyManager>,
+    pub lifecycle_manager: Arc<LifecycleManager>,
+    pub quota_manager: Arc<QuotaManager>,
+    pub cors_manager: Arc<CorsManager>,
+    pub version_manager: Arc<VersionManager>,
 }
 
 impl AppState {
@@ -79,6 +86,12 @@ impl AppState {
             Arc::new(NodeDiscovery::new(config_arc.clone(), cm.clone()))
         });
 
+        let policy_manager = Arc::new(PolicyManager::new());
+        let lifecycle_manager = Arc::new(LifecycleManager::new());
+        let quota_manager = Arc::new(QuotaManager::new());
+        let cors_manager = Arc::new(CorsManager::new());
+        let version_manager = Arc::new(VersionManager::new());
+
         Ok(Self {
             config: Arc::new(config),
             storage: Arc::new(storage),
@@ -88,6 +101,11 @@ impl AppState {
             shard_mapper,
             replication_manager,
             node_discovery,
+            policy_manager,
+            lifecycle_manager,
+            quota_manager,
+            cors_manager,
+            version_manager,
         })
     }
 
